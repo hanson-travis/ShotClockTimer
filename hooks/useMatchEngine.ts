@@ -76,22 +76,27 @@ export const useMatchEngine = () => {
   }, [state.phase, state.isPaused, state.isBreakPrep, tick]);
 
   const startGame = (p1: string, p2: string) => {
-    setState({
+    const playersChanged = (p1 !== state.p1Name || p2 !== state.p2Name);
+    
+    setState(prev => ({
       ...INITIAL_STATE,
       phase: GamePhase.AIMING,
       isBreakPrep: true,
       currentPlayer: settings.breakingPlayer,
       p1Name: p1 || 'Player 1',
       p2Name: p2 || 'Player 2',
+      shotHistory: playersChanged ? [] : prev.shotHistory,
       p1ExtensionsRemaining: settings.extensionsAllowed,
       p2ExtensionsRemaining: settings.extensionsAllowed,
       timeLeft: settings.shotTime,
       totalTimeForShot: settings.shotTime,
-    });
+    }));
     if (settings.audioEnabled) playBeep(1000, 50);
   };
 
   const updateSessionSettings = (newSettings: GameSettings, p1Name?: string, p2Name?: string) => {
+    const playersChanged = (p1Name !== state.p1Name || p2Name !== state.p2Name);
+    
     setSettings(newSettings);
     setState(prev => {
         let matchWinner: PlayerId | null = null;
@@ -108,8 +113,9 @@ export const useMatchEngine = () => {
             ...prev,
             p1Name: p1Name || prev.p1Name,
             p2Name: p2Name || prev.p2Name,
+            shotHistory: playersChanged ? [] : prev.shotHistory,
             winner: matchWinner,
-            phase: matchWinner ? GamePhase.MATCH_OVER : prev.phase
+            phase: matchWinner ? GamePhase.MATCH_OVER : (prev.phase === GamePhase.SETUP ? GamePhase.SETUP : prev.phase)
         };
     });
   };
@@ -130,6 +136,7 @@ export const useMatchEngine = () => {
       totalTimeForShot: settings.shotTime,
       isFirstShotOfInning: true,
       isExtensionActive: false,
+      winner: null,
     }));
   };
 
@@ -312,11 +319,15 @@ export const useMatchEngine = () => {
             isFirstShotAfterBreak: wasBreak,
             pendingSafetyIndex: null,
             isPaused: false,
+            winner: null,
         };
     });
   };
 
-  const resetGame = () => setState(INITIAL_STATE);
+  const resetGame = useCallback(() => {
+    setSettings(INITIAL_SETTINGS);
+    setState({ ...INITIAL_STATE, shotHistory: [] });
+  }, []);
 
   return { state, settings, setSettings, startGame, nextRack, togglePause, handleShotStruck, useExtension, handleOutcome, handleTimeFoul, undoLastOutcome, resetGame, handlePushDecision, updateSessionSettings };
 };

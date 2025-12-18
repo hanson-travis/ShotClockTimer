@@ -23,7 +23,13 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
     const variance = count > 0 ? times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count : 0;
     const stdDev = Math.sqrt(variance);
 
-    const made = shots.filter(s => s.outcome === ShotOutcome.MADE || s.outcome === ShotOutcome.BREAK_LEGAL).length;
+    // FIX: Include WIN outcome in the 'made' count
+    const made = shots.filter(s => 
+      s.outcome === ShotOutcome.MADE || 
+      s.outcome === ShotOutcome.BREAK_LEGAL || 
+      s.outcome === ShotOutcome.WIN
+    ).length;
+    
     const safety = shots.filter(s => s.outcome === ShotOutcome.SAFETY).length;
     const foul = shots.filter(s => s.outcome === ShotOutcome.FOUL || s.outcome === ShotOutcome.BREAK_FOUL || s.outcome === ShotOutcome.TIME_FOUL).length;
     const miss = shots.filter(s => s.outcome === ShotOutcome.MISSED || s.outcome === ShotOutcome.BREAK_DRY).length;
