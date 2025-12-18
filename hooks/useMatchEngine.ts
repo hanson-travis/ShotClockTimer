@@ -26,6 +26,8 @@ const INITIAL_STATE: GameState = {
   isFirstShotAfterBreak: false,
   p1Name: 'Player 1',
   p2Name: 'Player 2',
+  p1ProfileId: null,
+  p2ProfileId: null,
   shotHistory: [],
   p1Score: 0,
   p2Score: 0,
@@ -75,8 +77,8 @@ export const useMatchEngine = () => {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [state.phase, state.isPaused, state.isBreakPrep, tick]);
 
-  const startGame = (p1: string, p2: string) => {
-    const playersChanged = (p1 !== state.p1Name || p2 !== state.p2Name);
+  const startGame = (p1: string, p2: string, p1Id: string | null = null, p2Id: string | null = null) => {
+    const playersChanged = (p1 !== state.p1Name || p2 !== state.p2Name || p1Id !== state.p1ProfileId || p2Id !== state.p2ProfileId);
     
     setState(prev => ({
       ...INITIAL_STATE,
@@ -85,6 +87,8 @@ export const useMatchEngine = () => {
       currentPlayer: settings.breakingPlayer,
       p1Name: p1 || 'Player 1',
       p2Name: p2 || 'Player 2',
+      p1ProfileId: p1Id,
+      p2ProfileId: p2Id,
       shotHistory: playersChanged ? [] : prev.shotHistory,
       p1ExtensionsRemaining: settings.extensionsAllowed,
       p2ExtensionsRemaining: settings.extensionsAllowed,
@@ -94,8 +98,8 @@ export const useMatchEngine = () => {
     if (settings.audioEnabled) playBeep(1000, 50);
   };
 
-  const updateSessionSettings = (newSettings: GameSettings, p1Name?: string, p2Name?: string) => {
-    const playersChanged = (p1Name !== state.p1Name || p2Name !== state.p2Name);
+  const updateSessionSettings = (newSettings: GameSettings, p1Name?: string, p2Name?: string, p1Id?: string | null, p2Id?: string | null) => {
+    const playersChanged = (p1Name !== state.p1Name || p2Name !== state.p2Name || p1Id !== state.p1ProfileId || p2Id !== state.p2ProfileId);
     
     setSettings(newSettings);
     setState(prev => {
@@ -111,8 +115,10 @@ export const useMatchEngine = () => {
 
         return {
             ...prev,
-            p1Name: p1Name || prev.p1Name,
-            p2Name: p2Name || prev.p2Name,
+            p1Name: p1Name !== undefined ? p1Name : prev.p1Name,
+            p2Name: p2Name !== undefined ? p2Name : prev.p2Name,
+            p1ProfileId: p1Id !== undefined ? p1Id : prev.p1ProfileId,
+            p2ProfileId: p2Id !== undefined ? p2Id : prev.p2ProfileId,
             shotHistory: playersChanged ? [] : prev.shotHistory,
             winner: matchWinner,
             phase: matchWinner ? GamePhase.MATCH_OVER : (prev.phase === GamePhase.SETUP ? GamePhase.SETUP : prev.phase)

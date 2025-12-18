@@ -1,29 +1,62 @@
-import React from 'react';
-import { GameSettings, PlayerId, MatchFormat, GameType } from '../types';
-import { Settings, X, Timer, Target, Zap, RotateCcw, Home, PlayCircle } from 'lucide-react';
+import React, { useState } from 'react';
+import { GameSettings, PlayerId, MatchFormat, GameType, KnownPlayer } from '../types';
+import { Settings, X, Timer, Target, Zap, RotateCcw, Home, UserPlus, UserCircle } from 'lucide-react';
+import { PlayerPicker } from './PlayerPicker';
 
 interface SetupModalProps {
   settings: GameSettings;
   setSettings: (s: GameSettings) => void;
   p1Name: string;
   setP1Name: (n: string) => void;
+  p1Id: string | null;
+  setP1Id: (id: string | null) => void;
   p2Name: string;
   setP2Name: (n: string) => void;
+  p2Id: string | null;
+  setP2Id: (id: string | null) => void;
   onStart: () => void;
   onUpdate: () => void;
   onReset: () => void;
   isMatchActive: boolean;
   isOpen: boolean;
   onClose: () => void;
+  knownPlayers: KnownPlayer[];
+  onAddKnownPlayer: (first: string, last: string, suffix: string) => KnownPlayer;
+  onDeleteKnownPlayer: (id: string) => void;
 }
 
 export const SetupModal: React.FC<SetupModalProps> = ({ 
-  settings, setSettings, p1Name, setP1Name, p2Name, setP2Name, onStart, onUpdate, onReset, isMatchActive, isOpen, onClose 
+  settings, setSettings, p1Name, setP1Name, p1Id, setP1Id, p2Name, setP2Name, p2Id, setP2Id,
+  onStart, onUpdate, onReset, isMatchActive, isOpen, onClose, 
+  knownPlayers, onAddKnownPlayer, onDeleteKnownPlayer
 }) => {
+  const [activePickerSlot, setActivePickerSlot] = useState<PlayerId | null>(null);
+
   if (!isOpen) return null;
 
   const handleFocus = (event: React.FocusEvent<HTMLInputElement>) => {
     event.target.select();
+  };
+
+  const handlePlayerSelect = (player: KnownPlayer | null) => {
+    if (activePickerSlot === PlayerId.ONE) {
+      if (player) {
+        setP1Name(`${player.firstName} ${player.lastName}${player.suffix ? ' ' + player.suffix : ''}`);
+        setP1Id(player.id);
+      } else {
+        setP1Name('Player 1');
+        setP1Id(null);
+      }
+    } else if (activePickerSlot === PlayerId.TWO) {
+      if (player) {
+        setP2Name(`${player.firstName} ${player.lastName}${player.suffix ? ' ' + player.suffix : ''}`);
+        setP2Id(player.id);
+      } else {
+        setP2Name('Player 2');
+        setP2Id(null);
+      }
+    }
+    setActivePickerSlot(null);
   };
 
   return (
@@ -88,14 +121,26 @@ export const SetupModal: React.FC<SetupModalProps> = ({
           {/* Players */}
           <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-blue-400 uppercase tracking-tight">Player 1</label>
-                <input type="text" value={p1Name} onChange={(e) => setP1Name(e.target.value)} onFocus={handleFocus}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all"/>
+                <div className="flex justify-between items-center pr-1">
+                    <label className="block text-xs font-bold text-blue-400 uppercase tracking-tight">Player 1</label>
+                    <button onClick={() => setActivePickerSlot(PlayerId.ONE)} className="text-blue-500 hover:text-blue-400" title="Select Profile"><UserPlus size={14} /></button>
+                </div>
+                <div className="relative">
+                    <input type="text" value={p1Name} onChange={(e) => { setP1Name(e.target.value); setP1Id(null); }} onFocus={handleFocus}
+                        className={`w-full bg-slate-800 border ${p1Id ? 'border-indigo-500 shadow-sm shadow-indigo-500/10' : 'border-slate-700'} rounded-lg p-3 text-white focus:border-blue-500 outline-none transition-all pr-10`}/>
+                    {p1Id && <UserCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400" />}
+                </div>
               </div>
               <div className="space-y-1">
-                <label className="block text-xs font-bold text-orange-400 uppercase tracking-tight">Player 2</label>
-                <input type="text" value={p2Name} onChange={(e) => setP2Name(e.target.value)} onFocus={handleFocus}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg p-3 text-white focus:border-orange-500 outline-none transition-all"/>
+                <div className="flex justify-between items-center pr-1">
+                    <label className="block text-xs font-bold text-orange-400 uppercase tracking-tight">Player 2</label>
+                    <button onClick={() => setActivePickerSlot(PlayerId.TWO)} className="text-orange-500 hover:text-orange-400" title="Select Profile"><UserPlus size={14} /></button>
+                </div>
+                <div className="relative">
+                    <input type="text" value={p2Name} onChange={(e) => { setP2Name(e.target.value); setP2Id(null); }} onFocus={handleFocus}
+                        className={`w-full bg-slate-800 border ${p2Id ? 'border-indigo-500 shadow-sm shadow-indigo-500/10' : 'border-slate-700'} rounded-lg p-3 text-white focus:border-orange-500 outline-none transition-all pr-10`}/>
+                    {p2Id && <UserCircle size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-400" />}
+                </div>
               </div>
           </div>
 
@@ -178,6 +223,17 @@ export const SetupModal: React.FC<SetupModalProps> = ({
           )}
         </div>
       </div>
+
+      {activePickerSlot && (
+        <PlayerPicker 
+            players={knownPlayers}
+            currentName={activePickerSlot === PlayerId.ONE ? p1Name : p2Name}
+            onClose={() => setActivePickerSlot(null)}
+            onSelect={handlePlayerSelect}
+            onAdd={onAddKnownPlayer}
+            onDelete={onDeleteKnownPlayer}
+        />
+      )}
     </div>
   );
 };

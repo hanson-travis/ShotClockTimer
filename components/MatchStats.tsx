@@ -23,7 +23,6 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
     const variance = count > 0 ? times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / count : 0;
     const stdDev = Math.sqrt(variance);
 
-    // FIX: Include WIN outcome in the 'made' count
     const made = shots.filter(s => 
       s.outcome === ShotOutcome.MADE || 
       s.outcome === ShotOutcome.BREAK_LEGAL || 
@@ -41,6 +40,44 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
   const p2Stats = useMemo(() => getPlayerStats(PlayerId.TWO), [state.shotHistory]);
 
   const COLORS = { MADE: '#22c55e', MISS: '#ef4444', SAFETY: '#3b82f6', FOUL: '#eab308' };
+
+  const renderPie = (stats: any) => {
+    const data = [
+      { name: 'Pot', value: stats.made, color: COLORS.MADE },
+      { name: 'Miss', value: stats.miss, color: COLORS.MISS },
+      { name: 'Safe', value: stats.safety, color: COLORS.SAFETY },
+      { name: 'Foul', value: stats.foul, color: COLORS.FOUL },
+    ].filter(d => d.value > 0);
+
+    if (data.length === 0) return (
+      <div className="h-full flex items-center justify-center text-slate-600 text-[10px] uppercase font-bold tracking-widest">No Data</div>
+    );
+
+    return (
+      <ResponsiveContainer width="100%" height="100%">
+        <PieChart>
+          <Pie 
+            data={data} 
+            cx="50%" 
+            cy="50%" 
+            innerRadius={25} 
+            outerRadius={45} 
+            paddingAngle={5} 
+            dataKey="value"
+            animationDuration={500}
+          >
+            {data.map((entry, index) => (
+              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+            ))}
+          </Pie>
+          <Tooltip 
+            contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: '#fff', fontSize: '10px' }}
+            itemStyle={{ color: '#fff' }}
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    );
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/95 z-[100] overflow-y-auto p-4 flex items-center justify-center">
@@ -64,34 +101,18 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
             <WhiskerPlot label={state.p1Name} stats={p1Stats.whisker} color="#3b82f6" />
             <WhiskerPlot label={state.p2Name} stats={p2Stats.whisker} color="#f97316" />
             
-            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4">Shot Outcomes (Global)</h3>
+            <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-8 mb-4">Shot Outcomes (Relative)</h3>
             <div className="grid grid-cols-2 gap-4">
                 <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                    <div className="text-blue-400 font-bold mb-1 text-center">{state.p1Name}</div>
-                    <div className="h-40">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={[{name:'Pot',value:p1Stats.made},{name:'Miss',value:p1Stats.miss},{name:'Safe',value:p1Stats.safety},{name:'Foul',value:p1Stats.foul}].filter(d=>d.value>0)} 
-                                    cx="50%" cy="50%" innerRadius={25} outerRadius={45} paddingAngle={5} dataKey="value">
-                                    <Cell fill={COLORS.MADE} /><Cell fill={COLORS.MISS} /><Cell fill={COLORS.SAFETY} /><Cell fill={COLORS.FOUL} />
-                                </Pie>
-                                <Tooltip contentStyle={{backgroundColor:'#0f172a', border:'none', color: '#fff'}} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <div className="text-blue-400 font-bold mb-1 text-center truncate px-2 text-xs">{state.p1Name}</div>
+                    <div className="h-32">
+                        {renderPie(p1Stats)}
                     </div>
                 </div>
                 <div className="bg-slate-800/50 p-4 rounded-xl border border-slate-700">
-                    <div className="text-orange-400 font-bold mb-1 text-center">{state.p2Name}</div>
-                    <div className="h-40">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie data={[{name:'Pot',value:p2Stats.made},{name:'Miss',value:p2Stats.miss},{name:'Safe',value:p2Stats.safety},{name:'Foul',value:p2Stats.foul}].filter(d=>d.value>0)} 
-                                    cx="50%" cy="50%" innerRadius={25} outerRadius={45} paddingAngle={5} dataKey="value">
-                                    <Cell fill={COLORS.MADE} /><Cell fill={COLORS.MISS} /><Cell fill={COLORS.SAFETY} /><Cell fill={COLORS.FOUL} />
-                                </Pie>
-                                <Tooltip contentStyle={{backgroundColor:'#0f172a', border:'none', color: '#fff'}} />
-                            </PieChart>
-                        </ResponsiveContainer>
+                    <div className="text-orange-400 font-bold mb-1 text-center truncate px-2 text-xs">{state.p2Name}</div>
+                    <div className="h-32">
+                        {renderPie(p2Stats)}
                     </div>
                 </div>
             </div>
@@ -99,7 +120,7 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
 
           <div className="bg-slate-800 rounded-xl p-6 border border-slate-700 flex flex-col">
             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-6">Performance Matrix</h3>
-            <div className="space-y-4 text-slate-100">
+            <div className="space-y-4 text-slate-100 flex-1">
                 <div className="flex justify-between py-2 border-b border-slate-700">
                   <span className="text-slate-400">Potting Accuracy</span>
                   <div className="flex gap-4">
@@ -132,7 +153,7 @@ export const MatchStats: React.FC<MatchStatsProps> = ({ state, onClose }) => {
             
             <button 
               onClick={onClose} 
-              className="mt-auto w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg border border-slate-600"
+              className="mt-8 w-full bg-slate-700 hover:bg-slate-600 text-white font-bold py-3 rounded-lg border border-slate-600"
             >
               Return to Match
             </button>

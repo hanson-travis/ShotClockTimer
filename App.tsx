@@ -1,21 +1,27 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useMatchEngine } from './hooks/useMatchEngine';
+import { usePlayerManager } from './hooks/usePlayerManager';
 import { GamePhase, PlayerId, ShotOutcome, MatchFormat, GameType } from './types';
 import { RadialTimer } from './components/RadialTimer';
 import { MatchStats } from './components/MatchStats';
 import { SetupModal } from './components/SetupModal';
 import { 
-  Play, Pause, Activity, Settings, BarChart2, Undo2, RotateCcw, Timer as TimerIcon, History, ShieldCheck, ShieldX, ShieldAlert, AlertTriangle, ArrowRightLeft, Skull, Home, Trophy, Swords, PlayCircle
+  Play, Pause, Activity, Settings, BarChart2, Undo2, RotateCcw, Timer as TimerIcon, History, ShieldCheck, ShieldX, ShieldAlert, AlertTriangle, ArrowRightLeft, Skull, Home, Trophy, Swords, PlayCircle, UserCircle
 } from 'lucide-react';
 
 const App: React.FC = () => {
   const { state, settings, setSettings, startGame, nextRack, togglePause, handleShotStruck, useExtension, handleOutcome, handleTimeFoul, undoLastOutcome, resetGame, handlePushDecision, updateSessionSettings } = useMatchEngine();
+  const { players, addPlayer, deletePlayer, updatePlayerStats } = usePlayerManager();
+  
   const [showStats, setShowStats] = useState(false);
   const [showSetup, setShowSetup] = useState(true);
+  
   const [tempP1Name, setTempP1Name] = useState('Player 1');
+  const [tempP1Id, setTempP1Id] = useState<string | null>(null);
   const [tempP2Name, setTempP2Name] = useState('Player 2');
+  const [tempP2Id, setTempP2Id] = useState<string | null>(null);
+  
   const historyEndRef = useRef<HTMLDivElement>(null);
-
   const isP1 = state.currentPlayer === PlayerId.ONE;
   
   useEffect(() => { historyEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [state.shotHistory.length]);
@@ -24,17 +30,41 @@ const App: React.FC = () => {
   useEffect(() => {
     if (state.phase === GamePhase.SETUP) {
         setTempP1Name(state.p1Name);
+        setTempP1Id(state.p1ProfileId);
         setTempP2Name(state.p2Name);
+        setTempP2Id(state.p2ProfileId);
         setShowSetup(true);
     }
-  }, [state.phase, state.p1Name, state.p2Name]);
+  }, [state.phase]);
+
+  const saveKnownPlayerStats = () => {
+    if (state.p1ProfileId) updatePlayerStats(state.p1ProfileId, state.shotHistory.filter(s => s.playerId === PlayerId.ONE));
+    if (state.p2ProfileId) updatePlayerStats(state.p2ProfileId, state.shotHistory.filter(s => s.playerId === PlayerId.TWO));
+  };
 
   const handleExitToMainMenu = () => {
     if (window.confirm('Exit to main menu? All session progress and scores will be cleared.')) {
+        saveKnownPlayerStats();
         resetGame();
-        // Force the modal to be visible immediately
         setShowSetup(true);
     }
+  };
+
+  const handleUpdateMatch = () => {
+    // If players are changing, archive the old ones if they were known players
+    const playersChanging = (tempP1Id !== state.p1ProfileId || tempP2Id !== state.p2ProfileId || tempP1Name !== state.p1Name || tempP2Name !== state.p2Name);
+    if (playersChanging) {
+        saveKnownPlayerStats();
+    }
+    updateSessionSettings(settings, tempP1Name, tempP2Name, tempP1Id, tempP2Id);
+    setShowSetup(false);
+  };
+
+  const handleStartMatch = () => {
+    // If we are starting fresh but a known player was active, save their data
+    saveKnownPlayerStats();
+    startGame(tempP1Name, tempP2Name, tempP1Id, tempP2Id);
+    setShowSetup(false);
   };
 
   const getBackgroundColor = () => {
@@ -113,7 +143,10 @@ const App: React.FC = () => {
             <div className="flex justify-between gap-2 sm:gap-4 mb-2 sm:mb-4 h-20 shrink-0">
                 <div className={`flex-1 rounded-lg p-2 border-2 flex flex-col justify-center transition-all ${isP1 ? 'bg-blue-900/30 border-blue-500 shadow-lg shadow-blue-500/20' : 'bg-slate-800/50 border-transparent opacity-60'}`}>
                     <div className="flex justify-between items-start">
-                        <div className="text-[10px] uppercase text-slate-400 font-bold mb-0.5">{isP1 ? '• Shooting' : 'Player 1'}</div>
+                        <div className="flex items-center gap-1">
+                            <div className="text-[10px] uppercase text-slate-400 font-bold mb-0.5">{isP1 ? '• Shooting' : 'Player 1'}</div>
+                            {state.p1ProfileId && <UserCircle size={10} className="text-indigo-400" />}
+                        </div>
                         {settings.threeFoulRule && (
                             <div className="flex gap-1">
                                 {[...Array(3)].map((_, i) => (
@@ -131,7 +164,10 @@ const App: React.FC = () => {
                 </div>
                 <div className={`flex-1 rounded-lg p-2 border-2 flex flex-col justify-center transition-all ${!isP1 ? 'bg-orange-900/30 border-orange-500 shadow-lg shadow-orange-500/20' : 'bg-slate-800/50 border-transparent opacity-60'}`}>
                     <div className="flex justify-between items-start">
-                        <div className="text-[10px] uppercase text-slate-400 font-bold mb-0.5">{!isP1 ? '• Shooting' : 'Player 2'}</div>
+                        <div className="flex items-center gap-1">
+                            <div className="text-[10px] uppercase text-slate-400 font-bold mb-0.5">{!isP1 ? '• Shooting' : 'Player 2'}</div>
+                            {state.p2ProfileId && <UserCircle size={10} className="text-indigo-400" />}
+                        </div>
                         {settings.threeFoulRule && (
                             <div className="flex gap-1">
                                 {[...Array(3)].map((_, i) => (
@@ -340,16 +376,19 @@ const App: React.FC = () => {
       <SetupModal 
         settings={settings} 
         setSettings={setSettings} 
-        p1Name={tempP1Name} 
-        setP1Name={setTempP1Name} 
-        p2Name={tempP2Name} 
-        setP2Name={setTempP2Name} 
-        onStart={() => { startGame(tempP1Name, tempP2Name); setShowSetup(false); }} 
-        onUpdate={() => { updateSessionSettings(settings, tempP1Name, tempP2Name); setShowSetup(false); }}
+        p1Name={tempP1Name} setP1Name={setTempP1Name} 
+        p1Id={tempP1Id} setP1Id={setTempP1Id}
+        p2Name={tempP2Name} setP2Name={setTempP2Name} 
+        p2Id={tempP2Id} setP2Id={setTempP2Id}
+        onStart={handleStartMatch} 
+        onUpdate={handleUpdateMatch}
         onReset={handleExitToMainMenu}
         isMatchActive={isMatchStarted}
         isOpen={showSetup} 
         onClose={() => setShowSetup(false)} 
+        knownPlayers={players}
+        onAddKnownPlayer={addPlayer}
+        onDeleteKnownPlayer={deletePlayer}
       />
     </div>
   );

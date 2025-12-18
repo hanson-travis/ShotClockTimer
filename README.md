@@ -28,7 +28,8 @@ A professional-grade, web-based shot clock and statistical performance tracker d
 1. **Initialize Session:** Enter player names and set your desired match format (Single, Race, or Set).
 2. **Aiming Phase:** The clock starts as soon as a player's inning begins.
 3. **Shot Struck:** Click the large **SHOT STRUCK** button the instant the cue ball is hit.
-4. **Assessment:** Record the outcome (Potted, Missed, Safety, Foul).
+4. **Assessment:** Note the outcome of the shot but wait to record the result until all balls stop moving.
+     This is the moment that the shot clock will start recording shot time. (Potted, Missed, Safety, Foul).
 5. **Rack Completion:** Once a rack is won, select the next breaker to start the next rack.
 6. **Session Stats:** Open the **Statistics** panel at any time to see detailed timing and accuracy breakdowns.
 

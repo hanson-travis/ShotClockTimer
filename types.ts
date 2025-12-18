@@ -75,6 +75,8 @@ export interface GameState {
   isFirstShotAfterBreak: boolean;
   p1Name: string;
   p2Name: string;
+  p1ProfileId: string | null;
+  p2ProfileId: string | null;
   shotHistory: ShotEvent[];
   p1Score: number;
   p2Score: number;
@@ -87,4 +89,24 @@ export interface GameState {
   isFirstShotOfInning: boolean;
   winner: PlayerId | null;
   pendingSafetyIndex: number | null;
+}
+
+// Player Management Types
+export interface SessionSummary {
+  date: number;
+  shots: number;
+  made: number;
+  safeties: number;
+  fouls: number;
+  avgTime: number;
+}
+
+export interface KnownPlayer {
+  id: string;
+  firstName: string;
+  lastName: string;
+  suffix?: string;
+  createdAt: number;
+  lastPlayed: number;
+  history: SessionSummary[];
 }
