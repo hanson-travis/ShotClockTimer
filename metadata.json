@@ -1,0 +1,5 @@
+{
+  "name": "Pool Shot Clock & Tracker",
+  "description": "A comprehensive shot clock and statistical tracking application for 8-ball pool leagues. Features configurable timers, extension management, and real-time performance analytics.",
+  "requestFramePermissions": []
+}
