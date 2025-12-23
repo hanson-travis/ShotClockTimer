@@ -5,6 +5,7 @@ import { GamePhase, PlayerId, ShotOutcome, MatchFormat, GameType } from './types
 import { RadialTimer } from './components/RadialTimer';
 import { MatchStats } from './components/MatchStats';
 import { SetupModal } from './components/SetupModal';
+import { initializeAudio } from './utils/sound';
 import { 
   Play, Pause, Activity, Settings, BarChart2, Undo2, RotateCcw, Timer as TimerIcon, History, ShieldCheck, ShieldX, ShieldAlert, AlertTriangle, ArrowRightLeft, Skull, Home, Trophy, Swords, PlayCircle, UserCircle
 } from 'lucide-react';
@@ -25,6 +26,16 @@ const App: React.FC = () => {
   const isP1 = state.currentPlayer === PlayerId.ONE;
   
   useEffect(() => { historyEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [state.shotHistory.length]);
+
+  // Audio Unlock for Mobile: Initialize AudioContext on first interaction
+  useEffect(() => {
+    const unlock = () => {
+      initializeAudio();
+      ['click', 'touchstart', 'keydown'].forEach(e => document.removeEventListener(e, unlock));
+    };
+    ['click', 'touchstart', 'keydown'].forEach(e => document.addEventListener(e, unlock));
+    return () => ['click', 'touchstart', 'keydown'].forEach(e => document.removeEventListener(e, unlock));
+  }, []);
 
   // Reactive Menu Trigger: When phase becomes SETUP, force show the setup modal
   useEffect(() => {

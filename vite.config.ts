@@ -5,10 +5,6 @@ import react from '@vitejs/plugin-react';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
-        // REQUIRED for GitHub Pages
-        // Make sure the repo name "ShotClockTimer" matches exactly
-        base: '/ShotClockTimer/',
-        
       server: {
         port: 3000,
         host: '0.0.0.0',

@@ -1,3 +1,18 @@
+let audioContext: AudioContext | null = null;
+
+export const initializeAudio = () => {
+  const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+  if (!AudioContext) return;
+
+  if (!audioContext) {
+    audioContext = new AudioContext();
+  }
+
+  if (audioContext.state === 'suspended') {
+    audioContext.resume().catch((e) => console.warn("Audio resume failed", e));
+  }
+};
+
 export const speak = (text: string) => {
   if (!('speechSynthesis' in window)) return;
   
@@ -11,22 +26,30 @@ export const speak = (text: string) => {
 };
 
 export const playBeep = (frequency = 440, duration = 100) => {
-    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-    if (!AudioContext) return;
+    // Ensure we have a context (fallback if global unlock failed or wasn't triggered)
+    if (!audioContext) initializeAudio();
+    if (!audioContext) return;
 
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const osc = audioContext.createOscillator();
+    const gain = audioContext.createGain();
 
     osc.type = 'sine';
     osc.frequency.value = frequency;
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(audioContext.destination);
     
-    osc.start();
-    gain.gain.exponentialRampToValueAtTime(0.00001, ctx.currentTime + duration / 1000);
+    const now = audioContext.currentTime;
+    osc.start(now);
+    
+    // Explicitly set start volume to 1 (full) then ramp down
+    gain.gain.setValueAtTime(1, now);
+    gain.gain.exponentialRampToValueAtTime(0.00001, now + duration / 1000);
+    
+    osc.stop(now + duration / 1000);
+    
+    // Cleanup nodes after they are done playing
     setTimeout(() => {
-        osc.stop();
-        ctx.close();
-    }, duration);
+        osc.disconnect();
+        gain.disconnect();
+    }, duration + 50);
 };
